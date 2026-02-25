@@ -10,305 +10,485 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --green: #1e4d30; --green-l: #2d6a4f; --green-50: #f0faf2; --green-100: #d8f3dc;
-  --white: #fff; --bg: #f8f7f4; --ink: #1a1916; --ink-50: #6b6860; --ink-30: #a8a49c;
+  --green: #1e4d30; --green-l: #2d6a4f; --green-50: #f0faf2; --green-100: #c8e6ce;
+  --white: #fff; --bg: #f8f7f4; --ink: #1a1916; --ink-60: #5a5754; --ink-30: #a8a49c;
   --border: #ebe8e2;
+  --safe-top: max(env(safe-area-inset-top), 44px);
+  --safe-bot: max(env(safe-area-inset-bottom), 20px);
+  --nav-h: 64px;
   --f: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
-html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:var(--f); -webkit-font-smoothing:antialiased; user-select:none; -webkit-user-select:none; }
+html, body { width:100%; height:100%; overflow:hidden; background:#111; font-family:var(--f); -webkit-font-smoothing:antialiased; user-select:none; -webkit-user-select:none; }
 
 /* ── VIDEO ── */
-#video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; display:none; }
+#video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
 
-/* ── SCREENS ── */
-.screen { position:fixed; inset:0; z-index:1; display:none; }
-.screen.active { display:block; }
-#screen-scan { background:transparent; }
-#screen-explore, #screen-me { background:var(--bg); overflow-y:auto; padding-bottom:82px; }
-
-/* ── TOP BAR ── */
-.topbar {
-  position:fixed; top:0; left:0; right:0;
-  padding:max(env(safe-area-inset-top),44px) 20px 14px;
-  display:flex; justify-content:space-between; align-items:center;
-  z-index:20;
-}
-.topbar.dark { background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,transparent 100%); }
-.topbar.light { background:var(--white); border-bottom:1px solid var(--border); }
-.wordmark { font-size:20px; font-weight:800; letter-spacing:-0.04em; }
-.wordmark.white { color:white; text-shadow:0 1px 8px rgba(0,0,0,0.3); }
-.wordmark.dark  { color:var(--ink); }
-.wordmark span  { opacity:0.4; }
-.compass-wrap { display:flex; align-items:center; gap:10px; }
-#heading-display { font-size:13px; font-weight:700; color:white; letter-spacing:0.02em; }
-#compass-dial {
-  width:38px; height:38px; border-radius:50%;
-  background:rgba(255,255,255,0.9); backdrop-filter:blur(12px);
-  display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:800; color:#c0392b;
-  box-shadow:0 2px 10px rgba(0,0,0,0.15);
-}
-
-/* ── BOTTOM NAV ── */
+/* ══════════════════════════════
+   BOTTOM NAV — always on top
+══════════════════════════════ */
 #nav {
-  position:fixed; bottom:0; left:0; right:0;
-  height:82px; z-index:30;
-  display:flex; align-items:flex-start; justify-content:space-around;
-  padding-top:10px;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 9999; /* highest possible */
+  height: calc(var(--nav-h) + var(--safe-bot));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding-top: 10px;
+  /* default: transparent over camera */
+  background: linear-gradient(0deg, rgba(0,0,0,0.72) 60%, transparent 100%);
+  transition: background 0.25s;
 }
-#nav.dark  { background:linear-gradient(0deg,rgba(0,0,0,0.65) 0%,transparent 100%); }
-#nav.light { background:rgba(255,255,255,0.97); backdrop-filter:blur(20px); border-top:1px solid var(--border); }
-.ni { display:flex; flex-direction:column; align-items:center; gap:4px; padding:4px 20px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-.ni-icon { font-size:20px; line-height:1; position:relative; }
-.ni-lbl  { font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; }
-#nav.dark  .ni-lbl { color:rgba(255,255,255,0.45); }
-#nav.light .ni-lbl { color:var(--ink-30); }
-#nav.dark  .ni.on .ni-lbl { color:white; }
-#nav.light .ni.on .ni-lbl { color:var(--green); }
-.ni.on .ni-icon::after { content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:currentColor; }
-#nav.dark  .ni.on .ni-icon::after { background:white; }
-#nav.light .ni.on .ni-icon::after { background:var(--green); }
+#nav.light {
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -1px 0 var(--border);
+}
+.ni {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 4px 24px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 10000; /* above nav bg */
+  pointer-events: auto;
+}
+.ni-icon { font-size: 22px; line-height: 1; }
+.ni-lbl  { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+/* dark nav (scan) */
+#nav:not(.light) .ni-lbl            { color: rgba(255,255,255,0.4); }
+#nav:not(.light) .ni.on .ni-lbl     { color: white; }
+/* light nav (explore/me) */
+#nav.light .ni-lbl                  { color: var(--ink-30); }
+#nav.light .ni.on .ni-lbl           { color: var(--green); }
+/* active dot */
+.ni::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%;
+  opacity: 0; transition: opacity 0.2s;
+}
+#nav:not(.light) .ni.on::after { opacity: 1; background: white; }
+#nav.light       .ni.on::after { opacity: 1; background: var(--green); }
 
-/* ── AR LABELS ── */
-.ar-label { position:fixed; display:flex; flex-direction:column; align-items:center; z-index:10; pointer-events:auto; transform:translateX(-50%); cursor:pointer; }
+/* ══════════════════════════════
+   SCREENS
+══════════════════════════════ */
+.screen {
+  position: fixed; inset: 0;
+  bottom: calc(var(--nav-h) + var(--safe-bot));
+  z-index: 1;
+  display: none;
+  overflow: hidden;
+}
+.screen.active { display: block; }
+
+/* SCAN — transparent, camera shows through */
+#screen-scan { background: transparent; }
+
+/* EXPLORE + ME — solid bg, scrollable */
+#screen-explore,
+#screen-me {
+  background: var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── SCAN: TOP BAR ── */
+#scan-topbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: var(--safe-top) 20px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%);
+  z-index: 10;
+  pointer-events: none;
+}
+.wordmark { font-size: 20px; font-weight: 800; letter-spacing: -0.04em; }
+.wordmark.white { color: white; }
+.wordmark.dark  { color: var(--ink); }
+.wordmark span  { opacity: 0.4; }
+.compass-wrap { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+#heading-display { font-size: 13px; font-weight: 700; color: white; }
+#compass-dial {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #c0392b;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+/* ── SCAN: AR LABELS ── */
+#ar-container {
+  position: absolute; inset: 0;
+  z-index: 5;
+  pointer-events: none; /* labels themselves enable pointer-events */
+}
+.ar-label {
+  position: absolute;
+  display: flex; flex-direction: column; align-items: center;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
 .ar-card {
-  background:rgba(255,255,255,0.92); backdrop-filter:blur(20px) saturate(1.5);
-  -webkit-backdrop-filter:blur(20px) saturate(1.5);
-  border-radius:10px; padding:6px 12px 7px;
-  box-shadow:0 2px 16px rgba(0,0,0,0.18); white-space:nowrap;
-  -webkit-tap-highlight-color:transparent;
-  transition:transform 0.1s;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-radius: 10px; padding: 6px 12px 7px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  active-transform: scale(0.94);
 }
-.ar-card:active { transform:scale(0.94); }
-.ar-name { font-size:11px; font-weight:700; color:var(--ink); }
-.ar-info { font-size:9px; font-weight:500; color:var(--green-l); margin-top:1px; }
-.ar-stem { width:1px; height:14px; background:linear-gradient(180deg,rgba(255,255,255,0.65),transparent); }
-.ar-dot  { width:6px; height:6px; border-radius:50%; background:white; box-shadow:0 0 0 2px rgba(255,255,255,0.4); }
+.ar-name { font-size: 11px; font-weight: 700; color: var(--ink); }
+.ar-info { font-size: 9px; font-weight: 500; color: var(--green-l); margin-top: 1px; }
+.ar-stem { width: 1px; height: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.7), transparent); }
+.ar-dot  { width: 6px; height: 6px; border-radius: 50%; background: white; box-shadow: 0 0 0 2px rgba(255,255,255,0.4); }
 
-/* ── SCAN TRAY ── */
+/* ── SCAN: BOTTOM TRAY ── */
 #scan-tray {
-  position:fixed; bottom:82px; left:0; right:0;
-  padding:16px 20px 12px;
-  background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);
-  display:flex; align-items:flex-end; z-index:15;
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 20px 16px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.65) 0%, transparent 100%);
+  display: flex; align-items: flex-end;
+  z-index: 6; pointer-events: none;
 }
-.tray-s { display:flex; flex-direction:column; gap:2px; flex:1; }
-.tray-l { font-size:8px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
-.tray-v { font-size:16px; font-weight:700; letter-spacing:-0.02em; color:white; }
-.tray-div { width:1px; height:32px; background:rgba(255,255,255,0.2); margin:0 16px 4px; }
-#peaks-pill { background:var(--green); color:white; border-radius:100px; padding:7px 16px; font-size:10px; font-weight:700; letter-spacing:0.04em; margin-bottom:3px; white-space:nowrap; box-shadow:0 2px 12px rgba(30,77,48,0.5); }
+.ts { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.tl { font-size: 8px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.tv { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: white; }
+.td { width: 1px; height: 30px; background: rgba(255,255,255,0.2); margin: 0 16px 4px; }
+#peaks-pill {
+  background: var(--green); color: white; border-radius: 100px;
+  padding: 7px 16px; font-size: 10px; font-weight: 700;
+  margin-bottom: 2px; white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(30,77,48,0.5);
+}
 
-/* ── NO PEAKS ── */
-#no-peaks { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.4s; }
-#no-peaks.show { opacity:1; }
-#no-peaks p { font-size:14px; color:rgba(255,255,255,0.75); font-weight:500; line-height:1.7; text-shadow:0 1px 6px rgba(0,0,0,0.5); }
+/* no peaks msg */
+#no-peaks { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; z-index: 4; opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+#no-peaks.show { opacity: 1; }
+#no-peaks p { font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 500; line-height: 1.8; text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
 
-/* ── STATUS ── */
-#status { position:fixed; top:calc(max(env(safe-area-inset-top),44px) + 52px); left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); color:rgba(255,255,255,0.9); border-radius:100px; padding:7px 16px; font-size:11px; font-weight:600; z-index:25; transition:opacity 0.4s; white-space:nowrap; pointer-events:none; }
-#status.hide { opacity:0; }
+/* ══════════════════════════════
+   EXPLORE SCREEN
+══════════════════════════════ */
+.page-topbar {
+  position: sticky; top: 0; left: 0; right: 0;
+  padding: var(--safe-top) 20px 14px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  display: flex; justify-content: space-between; align-items: flex-end;
+}
+.page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); }
+.page-sub   { font-size: 11px; color: var(--ink-30); font-weight: 500; }
 
-/* ── CAL HINT ── */
-#cal-hint { position:fixed; bottom:140px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); border-radius:12px; padding:10px 16px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.85); z-index:20; text-align:center; max-width:220px; line-height:1.5; opacity:0; transition:opacity 0.4s; pointer-events:none; }
-#cal-hint.show { opacity:1; }
-
-/* ── DETAIL PANEL ── */
-#detail-panel { position:fixed; bottom:-100%; left:0; right:0; background:white; border-radius:24px 24px 0 0; padding:20px 22px 40px; z-index:50; box-shadow:0 -8px 40px rgba(0,0,0,0.25); transition:bottom 0.38s cubic-bezier(0.32,0.72,0,1); max-height:72vh; overflow-y:auto; }
-#detail-panel.open { bottom:0; }
-.dp-handle { width:36px; height:4px; background:#e0ddd8; border-radius:2px; margin:0 auto 16px; }
-.dp-kicker { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--green-l); margin-bottom:4px; }
-.dp-title  { font-size:32px; font-weight:800; letter-spacing:-0.04em; color:var(--ink); line-height:1; margin-bottom:4px; }
-.dp-sub    { font-size:12px; color:#8a8780; margin-bottom:16px; }
-.dp-chips  { display:flex; gap:8px; margin-bottom:16px; }
-.dp-chip   { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:9px 5px; text-align:center; }
-.dp-chip-v { font-size:15px; font-weight:700; color:var(--ink); }
-.dp-chip-l { font-size:8px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#8a8780; margin-top:3px; }
-#dp-save { width:100%; padding:14px; border-radius:100px; background:var(--green); color:white; border:none; font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:opacity 0.15s; }
-#dp-save:active { opacity:0.8; }
-#dp-save.saved { background:#e8f5ee; color:var(--green); }
-#dp-close { position:absolute; top:16px; right:18px; width:30px; height:30px; border-radius:50%; background:#f0ede8; border:none; cursor:pointer; font-size:14px; color:#8a8780; font-family:var(--f); display:flex; align-items:center; justify-content:center; }
-
-/* ── EXPLORE SCREEN ── */
-#screen-explore { padding-top:calc(max(env(safe-area-inset-top),44px) + 60px); }
-.explore-header { padding:0 20px 16px; }
-.explore-title { font-size:26px; font-weight:800; letter-spacing:-0.04em; color:var(--ink); }
-.explore-sub   { font-size:12px; color:var(--ink-50); margin-top:4px; }
-.peak-list { display:flex; flex-direction:column; }
+.peak-list { display: flex; flex-direction: column; background: var(--white); }
 .peak-row {
-  display:flex; align-items:center; gap:12px;
-  padding:14px 20px; border-bottom:1px solid var(--border);
-  cursor:pointer; background:var(--white);
-  -webkit-tap-highlight-color:transparent;
-  transition:background 0.15s;
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+  pointer-events: auto;
 }
-.peak-row:active { background:var(--bg); }
-.pr-rank { font-size:11px; font-weight:700; color:var(--ink-30); width:18px; text-align:center; flex-shrink:0; }
-.pr-info { flex:1; }
-.pr-name  { font-size:14px; font-weight:700; color:var(--ink); }
-.pr-where { font-size:10px; color:var(--ink-50); margin-top:2px; }
-.pr-right { text-align:right; }
-.pr-elev  { font-size:13px; font-weight:700; color:var(--green); }
-.pr-dist  { font-size:10px; color:var(--ink-30); margin-top:2px; }
+.peak-row:active { background: var(--bg); }
+.pr-rank  { font-size: 11px; font-weight: 700; color: var(--ink-30); width: 20px; text-align: center; flex-shrink: 0; }
+.pr-info  { flex: 1; min-width: 0; }
+.pr-name  { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-where { font-size: 10px; color: var(--ink-60); margin-top: 2px; }
+.pr-right { text-align: right; flex-shrink: 0; }
+.pr-elev  { font-size: 13px; font-weight: 700; color: var(--green); }
+.pr-dist  { font-size: 10px; color: var(--ink-30); margin-top: 2px; }
+.pr-saved { font-size: 12px; margin-top: 2px; }
 
-/* ── ME SCREEN ── */
-#screen-me { padding-top:0; }
-.me-band { height:180px; background:linear-gradient(150deg,#163d24 0%,var(--green) 100%); position:relative; overflow:hidden; padding-top:calc(max(env(safe-area-inset-top),44px) + 10px); }
-.me-band-dots { position:absolute; inset:0; opacity:0.06; background-image:radial-gradient(circle,white 1px,transparent 1px); background-size:18px 18px; }
-.me-user { position:relative; z-index:2; padding:0 22px; display:flex; align-items:center; gap:14px; }
-.me-av { width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; color:white; flex-shrink:0; }
-.me-name  { font-size:20px; font-weight:800; letter-spacing:-0.03em; color:white; }
-.me-level { font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-top:3px; }
-.me-stats { display:flex; gap:10px; padding:0 18px; margin-top:-28px; margin-bottom:24px; position:relative; z-index:5; }
-.me-stat { flex:1; background:white; border:1px solid var(--border); border-radius:14px; padding:12px 6px; text-align:center; box-shadow:0 4px 16px rgba(26,26,24,0.1); }
-.me-stat-v { font-size:26px; font-weight:800; letter-spacing:-0.05em; color:var(--ink); line-height:1; }
-.me-stat-l { font-size:8px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-50); margin-top:4px; }
-.me-stat.hero .me-stat-v { color:var(--green); }
-.me-section { padding:0 20px 20px; }
-.sec-lbl { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-30); margin-bottom:12px; }
-.badges { display:flex; gap:10px; }
-.badge { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
-.badge-ring { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; }
-.badge-ring.e { background:var(--green-50); border:1.5px solid var(--green-100); }
-.badge-ring.l { background:var(--bg); border:1.5px solid var(--border); opacity:0.35; }
-.badge-lbl { font-size:8px; font-weight:600; color:var(--ink-50); text-align:center; }
-.saved-list { display:flex; flex-direction:column; gap:6px; }
-.saved-row { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--bg); border:1px solid var(--border); border-radius:12px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-.saved-row:active { background:var(--green-50); }
-.sr-info { flex:1; }
-.sr-name  { font-size:13px; font-weight:700; color:var(--ink); }
-.sr-sub   { font-size:9px; color:var(--ink-50); margin-top:2px; }
-.sr-elev  { font-size:12px; font-weight:700; color:var(--green); }
-.empty-state { text-align:center; padding:32px 20px; color:var(--ink-30); font-size:13px; line-height:1.65; }
-.empty-icon  { font-size:36px; margin-bottom:12px; }
+/* ══════════════════════════════
+   ME SCREEN
+══════════════════════════════ */
+.me-band {
+  background: linear-gradient(150deg, #0f2a1a 0%, var(--green) 100%);
+  padding: var(--safe-top) 22px 32px;
+  position: relative; overflow: hidden;
+}
+.me-band-pattern {
+  position: absolute; inset: 0; opacity: 0.05;
+  background-image: radial-gradient(circle, white 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.me-user { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; padding-top: 8px; }
+.me-av {
+  width: 54px; height: 54px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.me-name  { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: white; line-height: 1; }
+.me-level { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-top: 4px; }
 
-/* ── SAVED TOAST ── */
-#toast { position:fixed; top:calc(max(env(safe-area-inset-top),44px) + 52px); left:50%; transform:translateX(-50%) translateY(-8px); background:var(--green); color:white; border-radius:100px; padding:8px 20px; font-size:12px; font-weight:700; white-space:nowrap; z-index:200; opacity:0; transition:opacity 0.25s,transform 0.25s; pointer-events:none; }
-#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.me-stats { display: flex; gap: 10px; padding: 0 18px; margin-top: -24px; margin-bottom: 0; position: relative; z-index: 5; }
+.me-stat {
+  flex: 1; background: white; border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 6px; text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.ms-v { font-size: 28px; font-weight: 800; letter-spacing: -0.05em; color: var(--ink); line-height: 1; }
+.ms-l { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-30); margin-top: 5px; }
+.me-stat.hero .ms-v { color: var(--green); }
 
-/* ══════════════════════
+.me-section { padding: 24px 20px 0; }
+.sec-hd { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-30); margin-bottom: 14px; }
+
+.badges { display: flex; gap: 10px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.badge-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.badge-icon.earned { background: var(--green-50); border: 1.5px solid var(--green-100); }
+.badge-icon.locked { background: var(--bg); border: 1.5px solid var(--border); filter: grayscale(1); opacity: 0.4; }
+.badge-lbl { font-size: 9px; font-weight: 600; color: var(--ink-60); text-align: center; line-height: 1.3; }
+
+.saved-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; }
+.saved-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; background: white; border: 1px solid var(--border);
+  border-radius: 14px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.saved-row:active { background: var(--green-50); }
+.sr-emoji { font-size: 20px; flex-shrink: 0; }
+.sr-info  { flex: 1; min-width: 0; }
+.sr-name  { font-size: 14px; font-weight: 700; color: var(--ink); }
+.sr-where { font-size: 10px; color: var(--ink-60); margin-top: 2px; }
+.sr-elev  { font-size: 13px; font-weight: 700; color: var(--green); flex-shrink: 0; }
+
+.empty-state { text-align: center; padding: 36px 20px; color: var(--ink-30); font-size: 13px; line-height: 1.7; }
+.empty-icon  { font-size: 40px; margin-bottom: 10px; }
+
+/* ══════════════════════════════
+   DETAIL PANEL
+══════════════════════════════ */
+#detail-panel {
+  position: fixed; bottom: -100%; left: 0; right: 0;
+  background: white; border-radius: 24px 24px 0 0;
+  padding: 20px 22px calc(var(--safe-bot) + 20px);
+  z-index: 99999;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.2);
+  transition: bottom 0.36s cubic-bezier(0.32,0.72,0,1);
+  max-height: 75vh; overflow-y: auto;
+}
+#detail-panel.open { bottom: 0; }
+.dp-handle { width: 36px; height: 4px; background: #e0ddd8; border-radius: 2px; margin: 0 auto 18px; }
+.dp-kicker { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-l); margin-bottom: 4px; }
+.dp-title  { font-size: 34px; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); line-height: 1; margin-bottom: 4px; }
+.dp-sub    { font-size: 12px; color: var(--ink-30); margin-bottom: 18px; }
+.dp-chips  { display: flex; gap: 8px; margin-bottom: 18px; }
+.dp-chip   { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 5px; text-align: center; }
+.dc-v { font-size: 15px; font-weight: 700; color: var(--ink); }
+.dc-l { font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-30); margin-top: 3px; }
+#dp-save {
+  width: 100%; padding: 15px; border-radius: 100px;
+  background: var(--green); color: white;
+  border: none; font-family: var(--f); font-size: 14px; font-weight: 700;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, background 0.2s;
+}
+#dp-save:active { opacity: 0.8; }
+#dp-save.saved { background: var(--green-50); color: var(--green); border: 1.5px solid var(--green-100); }
+#dp-close {
+  position: absolute; top: 18px; right: 18px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg); border: none;
+  cursor: pointer; font-size: 14px; color: var(--ink-30);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ══════════════════════════════
+   STATUS + TOAST + HINT
+══════════════════════════════ */
+#status {
+  position: fixed; top: calc(var(--safe-top) + 52px);
+  left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  color: rgba(255,255,255,0.9); border-radius: 100px;
+  padding: 7px 16px; font-size: 11px; font-weight: 600;
+  z-index: 1000; transition: opacity 0.4s; white-space: nowrap; pointer-events: none;
+}
+#status.hide { opacity: 0; }
+
+#toast {
+  position: fixed; top: calc(var(--safe-top) + 52px);
+  left: 50%; transform: translateX(-50%) translateY(-6px);
+  background: var(--green); color: white; border-radius: 100px;
+  padding: 9px 20px; font-size: 12px; font-weight: 700;
+  white-space: nowrap; z-index: 99998;
+  opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+#cal-hint {
+  position: fixed; bottom: calc(var(--nav-h) + var(--safe-bot) + 100px);
+  left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  border-radius: 12px; padding: 10px 16px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.85);
+  z-index: 20; text-align: center; max-width: 220px; line-height: 1.5;
+  opacity: 0; transition: opacity 0.4s; pointer-events: none;
+}
+#cal-hint.show { opacity: 1; }
+
+/* ══════════════════════════════
    OVERLAYS
-══════════════════════ */
-.overlay { position:fixed; inset:0; background:linear-gradient(160deg,#0d2b1a 0%,#1e4d30 100%); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 32px; text-align:center; transition:opacity 0.4s; }
-.overlay.hidden { opacity:0; pointer-events:none; }
-.ov-logo    { font-size:26px; font-weight:800; letter-spacing:-0.04em; color:white; margin-bottom:4px; }
-.ov-logo span { color:rgba(255,255,255,0.35); }
-.ov-tagline { font-size:12px; color:rgba(255,255,255,0.4); margin-bottom:40px; letter-spacing:0.04em; }
-.ov-icon    { font-size:52px; margin-bottom:18px; }
-.ov-title   { font-size:24px; font-weight:800; letter-spacing:-0.03em; color:white; margin-bottom:10px; line-height:1.1; }
-.ov-body    { font-size:14px; color:rgba(255,255,255,0.5); line-height:1.65; margin-bottom:28px; max-width:280px; }
-.perm-steps { display:flex; flex-direction:column; gap:10px; margin-bottom:24px; width:100%; max-width:280px; }
-.perm-step  { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px 14px; }
-.perm-icon  { font-size:20px; flex-shrink:0; }
-.perm-text  { text-align:left; flex:1; }
-.perm-name  { font-size:12px; font-weight:700; color:white; }
-.perm-desc  { font-size:10px; color:rgba(255,255,255,0.4); margin-top:2px; }
-.perm-check { font-size:16px; flex-shrink:0; opacity:0; transition:opacity 0.3s; }
-.perm-check.done { opacity:1; }
-.ov-btn  { width:100%; max-width:280px; padding:16px; background:white; color:var(--green); border:none; border-radius:100px; font-family:var(--f); font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.3); transition:transform 0.15s,opacity 0.15s; -webkit-tap-highlight-color:transparent; margin-bottom:10px; }
-.ov-btn:active { transform:scale(0.97); opacity:0.9; }
-.ov-btn:disabled { opacity:0.5; }
-.ov-note { font-size:11px; color:rgba(255,255,255,0.25); max-width:260px; line-height:1.5; }
+══════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0; z-index: 99990;
+  background: linear-gradient(160deg, #0d2b1a 0%, #1e4d30 100%);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 40px 32px; text-align: center;
+  transition: opacity 0.4s;
+}
+.overlay.hidden { opacity: 0; pointer-events: none; }
+.ov-logo    { font-size: 26px; font-weight: 800; letter-spacing: -0.04em; color: white; margin-bottom: 4px; }
+.ov-logo span { color: rgba(255,255,255,0.35); }
+.ov-tagline { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 40px; letter-spacing: 0.04em; }
+.ov-icon    { font-size: 52px; margin-bottom: 18px; }
+.ov-title   { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; color: white; margin-bottom: 10px; line-height: 1.1; }
+.ov-body    { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.65; margin-bottom: 28px; max-width: 280px; }
+.perm-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; width: 100%; max-width: 280px; }
+.perm-step  { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; }
+.perm-icon  { font-size: 20px; flex-shrink: 0; }
+.perm-name  { font-size: 12px; font-weight: 700; color: white; }
+.perm-desc  { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.perm-check { font-size: 16px; flex-shrink: 0; opacity: 0; transition: opacity 0.3s; margin-left: auto; }
+.perm-check.done { opacity: 1; }
+.ov-btn { width: 100%; max-width: 280px; padding: 16px; background: white; color: var(--green); border: none; border-radius: 100px; font-family: var(--f); font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.3); transition: transform 0.15s, opacity 0.15s; -webkit-tap-highlight-color: transparent; margin-bottom: 10px; }
+.ov-btn:active { transform: scale(0.97); opacity: 0.9; }
+.ov-btn:disabled { opacity: 0.5; }
+.ov-note { font-size: 11px; color: rgba(255,255,255,0.25); max-width: 260px; line-height: 1.5; }
 </style>
 </head>
 <body>
 
-<!-- VIDEO -->
-<video id="video" autoplay playsinline muted></video>
+<!-- VIDEO (always behind everything) -->
+<video id="video" autoplay playsinline muted style="display:none;"></video>
 
-<!-- ── SCAN SCREEN ── -->
+<!-- ══════════════════════════════
+     SCAN SCREEN
+══════════════════════════════ -->
 <div class="screen active" id="screen-scan">
-  <div class="topbar dark">
+  <div id="scan-topbar">
     <div class="wordmark white">Peak<span>Peek</span></div>
     <div class="compass-wrap">
       <div id="heading-display">--°</div>
       <div id="compass-dial">N</div>
     </div>
   </div>
+
   <div id="ar-container"></div>
-  <div id="no-peaks"><p>⛰️<br>Point toward<br>the horizon<br>to find peaks</p></div>
+
+  <div id="no-peaks">
+    <p>⛰️<br>Point toward the horizon<br>to find peaks</p>
+  </div>
+
   <div id="scan-tray">
-    <div class="tray-s"><div class="tray-l">Altitude</div><div class="tray-v" id="tray-alt">-- m</div></div>
-    <div class="tray-div"></div>
-    <div class="tray-s"><div class="tray-l">Heading</div><div class="tray-v" id="tray-heading">--°</div></div>
-    <div class="tray-div"></div>
-    <div class="tray-s"><div class="tray-l">Peaks</div><div class="tray-v" id="tray-peaks">--</div></div>
+    <div class="ts"><div class="tl">Altitude</div><div class="tv" id="tray-alt">-- m</div></div>
+    <div class="td"></div>
+    <div class="ts"><div class="tl">Heading</div><div class="tv" id="tray-heading">--°</div></div>
+    <div class="td"></div>
+    <div class="ts"><div class="tl">Peaks</div><div class="tv" id="tray-peaks">--</div></div>
     <div id="peaks-pill">Loading...</div>
   </div>
 </div>
 
-<!-- ── EXPLORE SCREEN ── -->
+<!-- ══════════════════════════════
+     EXPLORE SCREEN
+══════════════════════════════ -->
 <div class="screen" id="screen-explore">
-  <div class="topbar light">
-    <div class="wordmark dark">Peak<span>Peek</span></div>
+  <div class="page-topbar">
+    <div>
+      <div class="page-title">Nearby Peaks</div>
+    </div>
+    <div class="page-sub" id="explore-count">--</div>
   </div>
-  <div class="explore-header">
-    <div class="explore-title">Nearby Peaks</div>
-    <div class="explore-sub" id="explore-sub">Searching...</div>
+  <div class="peak-list" id="peak-list">
+    <div class="empty-state"><div class="empty-icon">📡</div>Waiting for location...</div>
   </div>
-  <div class="peak-list" id="peak-list"></div>
 </div>
 
-<!-- ── ME SCREEN ── -->
+<!-- ══════════════════════════════
+     ME SCREEN
+══════════════════════════════ -->
 <div class="screen" id="screen-me">
   <div class="me-band">
-    <div class="me-band-dots"></div>
+    <div class="me-band-pattern"></div>
     <div class="me-user">
-      <div class="me-av" id="me-initials">?</div>
+      <div class="me-av">🧗</div>
       <div>
-        <div class="me-name" id="me-name">Explorer</div>
+        <div class="me-name">Explorer</div>
         <div class="me-level">PeakPeek · <span id="me-level-txt">Level 1</span></div>
       </div>
     </div>
   </div>
   <div class="me-stats">
-    <div class="me-stat hero"><div class="me-stat-v" id="me-scanned">0</div><div class="me-stat-l">Scanned</div></div>
-    <div class="me-stat"><div class="me-stat-v" id="me-saved">0</div><div class="me-stat-l">Saved</div></div>
-    <div class="me-stat"><div class="me-stat-v" id="me-countries">0</div><div class="me-stat-l">Countries</div></div>
+    <div class="me-stat hero"><div class="ms-v" id="me-scanned">0</div><div class="ms-l">Scanned</div></div>
+    <div class="me-stat"><div class="ms-v" id="me-saved-count">0</div><div class="ms-l">Saved</div></div>
+    <div class="me-stat"><div class="ms-v" id="me-countries">--</div><div class="ms-l">Nearest</div></div>
   </div>
   <div class="me-section">
-    <div class="sec-lbl">Badges</div>
+    <div class="sec-hd">Badges</div>
     <div class="badges">
-      <div class="badge"><div class="badge-ring e" id="badge-first">⛰️</div><div class="badge-lbl">First Peek</div></div>
-      <div class="badge"><div class="badge-ring l" id="badge-5">🔭</div><div class="badge-lbl">5 Peaks</div></div>
-      <div class="badge"><div class="badge-ring l" id="badge-10">🌍</div><div class="badge-lbl">Explorer</div></div>
-      <div class="badge"><div class="badge-ring l" id="badge-4k">🏔️</div><div class="badge-lbl">4000er</div></div>
+      <div class="badge"><div class="badge-icon earned" id="b-first">⛰️</div><div class="badge-lbl">First Peek</div></div>
+      <div class="badge"><div class="badge-icon locked" id="b-5">🔭</div><div class="badge-lbl">5 Saved</div></div>
+      <div class="badge"><div class="badge-icon locked" id="b-4k">🏔️</div><div class="badge-lbl">4000er</div></div>
+      <div class="badge"><div class="badge-icon locked" id="b-10">🌍</div><div class="badge-lbl">10 Saved</div></div>
     </div>
   </div>
-  <div class="me-section">
-    <div class="sec-lbl">Saved Peaks</div>
+  <div class="me-section" style="padding-bottom:24px;">
+    <div class="sec-hd">Saved Peaks</div>
     <div class="saved-list" id="saved-list">
       <div class="empty-state">
         <div class="empty-icon">🏔️</div>
-        Scan a peak and tap Save<br>to build your collection
+        Scan a peak and tap<br><strong>Save</strong> to build your collection
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── BOTTOM NAV ── -->
-<div id="nav" class="dark">
-  <div class="ni on" id="ni-scan"    onclick="switchTab('scan')">   <div class="ni-icon">⛰</div><div class="ni-lbl">Scan</div></div>
-  <div class="ni"    id="ni-explore" onclick="switchTab('explore')"><div class="ni-icon">🔍</div><div class="ni-lbl">Explore</div></div>
-  <div class="ni"    id="ni-me"      onclick="switchTab('me')">     <div class="ni-icon">◎</div><div class="ni-lbl">Me</div></div>
+<!-- ══════════════════════════════
+     BOTTOM NAV
+══════════════════════════════ -->
+<div id="nav">
+  <div class="ni on" id="ni-scan"    onclick="switchTab('scan')">
+    <div class="ni-icon">⛰</div><div class="ni-lbl">Scan</div>
+  </div>
+  <div class="ni" id="ni-explore" onclick="switchTab('explore')">
+    <div class="ni-icon">🔍</div><div class="ni-lbl">Explore</div>
+  </div>
+  <div class="ni" id="ni-me" onclick="switchTab('me')">
+    <div class="ni-icon">◎</div><div class="ni-lbl">Me</div>
+  </div>
 </div>
 
-<!-- ── STATUS + HINTS ── -->
-<div id="status" class="hide">📡 Getting location...</div>
+<!-- STATUS + TOAST + HINT -->
+<div id="status" class="hide"></div>
+<div id="toast"></div>
 <div id="cal-hint">🧭 Move phone in a figure-8 to calibrate compass</div>
-<div id="toast">✓ Peak saved!</div>
 
-<!-- ── DETAIL PANEL ── -->
+<!-- DETAIL PANEL -->
 <div id="detail-panel">
   <div class="dp-handle"></div>
   <button id="dp-close" onclick="closeDetail()">✕</button>
   <div class="dp-kicker" id="dp-kicker"></div>
   <div class="dp-title"  id="dp-title">—</div>
-  <div class="dp-sub"    id="dp-sub">—</div>
+  <div class="dp-sub"    id="dp-sub"></div>
   <div class="dp-chips">
-    <div class="dp-chip"><div class="dp-chip-v" id="dp-elev">—</div><div class="dp-chip-l">Elevation</div></div>
-    <div class="dp-chip"><div class="dp-chip-v" id="dp-dist">—</div><div class="dp-chip-l">Distance</div></div>
-    <div class="dp-chip"><div class="dp-chip-v" id="dp-bear">—</div><div class="dp-chip-l">Bearing</div></div>
+    <div class="dp-chip"><div class="dc-v" id="dp-elev">—</div><div class="dc-l">Elevation</div></div>
+    <div class="dp-chip"><div class="dc-v" id="dp-dist">—</div><div class="dc-l">Distance</div></div>
+    <div class="dp-chip"><div class="dc-v" id="dp-bear">—</div><div class="dc-l">Bearing</div></div>
   </div>
-  <button id="dp-save" onclick="saveFromDetail()">Save Peak ♡</button>
+  <button id="dp-save" onclick="toggleSave()">Save Peak ♡</button>
 </div>
 
 <!-- SPLASH -->
@@ -317,9 +497,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
   <div class="ov-tagline">Know every mountain by name</div>
   <div class="ov-icon">⛰️</div>
   <div class="ov-title">Real AR.<br>Real mountains.</div>
-  <div class="ov-body">Point your phone at any mountain and instantly know its name, elevation and distance.</div>
+  <div class="ov-body">Point your phone at any mountain and instantly see its name, elevation and distance.</div>
   <button class="ov-btn" id="btn-start">Get Started →</button>
-  <div class="ov-note">Works best outdoors with mountains visible on the horizon</div>
+  <div class="ov-note">Works best outdoors pointing at the horizon</div>
 </div>
 
 <!-- PERMISSIONS -->
@@ -330,9 +510,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
   <div class="ov-title">3 quick<br>permissions</div>
   <div class="ov-body">Tap below — iOS will ask you to confirm each one.</div>
   <div class="perm-steps">
-    <div class="perm-step"><div class="perm-icon">📷</div><div class="perm-text"><div class="perm-name">Camera</div><div class="perm-desc">See the world through your lens</div></div><div class="perm-check" id="pc-camera">✅</div></div>
-    <div class="perm-step"><div class="perm-icon">📍</div><div class="perm-text"><div class="perm-name">Location</div><div class="perm-desc">Find peaks near you</div></div><div class="perm-check" id="pc-location">✅</div></div>
-    <div class="perm-step"><div class="perm-icon">🧭</div><div class="perm-text"><div class="perm-name">Motion & Compass</div><div class="perm-desc">Know which direction you're pointing</div></div><div class="perm-check" id="pc-motion">✅</div></div>
+    <div class="perm-step"><div class="perm-icon">📷</div><div><div class="perm-name">Camera</div><div class="perm-desc">See mountains through your lens</div></div><div class="perm-check" id="pc-cam">✅</div></div>
+    <div class="perm-step"><div class="perm-icon">📍</div><div><div class="perm-name">Location</div><div class="perm-desc">Find peaks near you</div></div><div class="perm-check" id="pc-loc">✅</div></div>
+    <div class="perm-step"><div class="perm-icon">🧭</div><div><div class="perm-name">Motion & Compass</div><div class="perm-desc">Know which direction you're pointing</div></div><div class="perm-check" id="pc-mot">✅</div></div>
   </div>
   <button class="ov-btn" id="btn-perms">Allow & Start →</button>
   <div class="ov-note">All data stays on your device.</div>
@@ -342,155 +522,125 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
 <div class="overlay hidden" id="step-loading">
   <div class="ov-logo">Peak<span>Peek</span></div>
   <div class="ov-tagline">Almost there...</div>
-  <div class="ov-icon" id="loading-icon">🗺️</div>
-  <div class="ov-title" id="loading-title">Finding your<br>location...</div>
-  <div class="ov-body" id="loading-body">Locking onto GPS and searching for peaks near you.</div>
+  <div class="ov-icon" id="li">🗺️</div>
+  <div class="ov-title" id="lt">Finding your<br>location...</div>
+  <div class="ov-body"  id="lb">Locking onto GPS and fetching peaks near you.</div>
 </div>
 
 <script>
-// ═══════════════════════
+'use strict';
+// ═══════════════════════════════════
 // STATE
-// ═══════════════════════
+// ═══════════════════════════════════
 let userLat=null, userLng=null, userAlt=0;
-let heading=0, tiltX=0;
-let rawHeading=0; // smoothed
+let heading=0, tiltX=0, prevH=null;
 let peaks=[], savedPeaks=new Set();
-let currentTab='scan';
-let detailPeakIdx=null;
-let scannedCount=0;
-
+let currentTab='scan', detailIdx=null;
 const H_FOV=60, V_FOV=45;
 
-// ═══════════════════════
+// ═══════════════════════════════════
 // TABS
-// ═══════════════════════
+// ═══════════════════════════════════
 function switchTab(tab) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   document.getElementById('screen-'+tab).classList.add('active');
   document.getElementById('ni-'+tab).classList.add('on');
-
-  const nav = document.getElementById('nav');
-  const video = document.getElementById('video');
+  const nav=document.getElementById('nav');
+  const vid=document.getElementById('video');
   if (tab==='scan') {
-    nav.className='dark'; video.style.display='block';
-    document.getElementById('detail-panel').classList.remove('open');
+    nav.classList.remove('light');
+    vid.style.display='block';
   } else {
-    nav.className='light'; video.style.display='none';
+    nav.classList.add('light');
+    vid.style.display='none';
+    closeDetail();
   }
   currentTab=tab;
-
   if (tab==='explore') renderExplore();
-  if (tab==='me') renderMe();
+  if (tab==='me')      renderMe();
 }
 
-// ═══════════════════════
+// ═══════════════════════════════════
 // OVERLAYS
-// ═══════════════════════
+// ═══════════════════════════════════
 document.getElementById('btn-start').addEventListener('click', ()=>{
-  document.getElementById('step-splash').classList.add('hidden');
-  document.getElementById('step-perms').classList.remove('hidden');
+  hide('step-splash'); show('step-perms');
 });
 
 document.getElementById('btn-perms').addEventListener('click', async function() {
-  const btn=this; btn.disabled=true; btn.textContent='Setting up...';
+  this.disabled=true; this.textContent='Setting up...';
 
-  // 1. Camera
+  // 1. Camera — must be first user gesture
   try {
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    const vid = document.getElementById('video');
-    vid.srcObject=stream; vid.style.display='block';
-    await vid.play();
-    document.getElementById('pc-camera').classList.add('done');
+    const v=document.getElementById('video');
+    v.srcObject=stream; v.style.display='block';
+    await v.play();
+    done('pc-cam');
   } catch(e) {
-    alert('Camera access denied. Go to Settings → Safari → Camera → Allow, then reload.');
-    btn.disabled=false; btn.textContent='Allow & Start →'; return;
+    alert('Camera denied. Go to Settings → Safari → Camera → Allow, then reload.');
+    this.disabled=false; this.textContent='Allow & Start →'; return;
   }
 
-  // 2. Motion — MUST be in direct user gesture handler (iOS 13+)
+  // 2. Motion — iOS 13+ needs direct user gesture
   if (typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function') {
     try {
-      const r = await DeviceOrientationEvent.requestPermission();
-      if (r==='granted') {
-        window.addEventListener('deviceorientation', handleOrientation, true);
-        document.getElementById('pc-motion').classList.add('done');
+      if (await DeviceOrientationEvent.requestPermission()==='granted') {
+        window.addEventListener('deviceorientation', onOrient, true);
+        done('pc-mot');
       }
-    } catch(e) {}
+    } catch(e){}
   } else {
-    window.addEventListener('deviceorientation', handleOrientation, true);
-    document.getElementById('pc-motion').classList.add('done');
+    window.addEventListener('deviceorientation', onOrient, true);
+    done('pc-mot');
   }
 
-  // 3. Go to loading + start GPS
-  document.getElementById('step-perms').classList.add('hidden');
-  document.getElementById('step-loading').classList.remove('hidden');
+  // 3. GPS + loading screen
+  hide('step-perms'); show('step-loading');
   startGPS();
-  startRenderLoop();
+  startLoop();
 
-  // Cal hint after 8s
-  setTimeout(()=>{
-    const h=document.getElementById('cal-hint');
-    h.classList.add('show');
-    setTimeout(()=>h.classList.remove('show'),4500);
-  }, 8000);
+  setTimeout(()=>{ const h=document.getElementById('cal-hint'); h.classList.add('show'); setTimeout(()=>h.classList.remove('show'),4500); }, 8000);
 });
 
-function hideOverlays() {
-  document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden'));
-}
-function setLoading(icon,title,body) {
-  document.getElementById('loading-icon').textContent=icon;
-  document.getElementById('loading-title').textContent=title;
-  document.getElementById('loading-body').textContent=body;
-}
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function done(id){ document.getElementById(id).classList.add('done'); }
+function setLoad(i,t,b){ document.getElementById('li').textContent=i; document.getElementById('lt').textContent=t; document.getElementById('lb').textContent=b; }
+function hideOverlays(){ document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden')); }
 
-// ═══════════════════════
+// ═══════════════════════════════════
 // GPS
-// ═══════════════════════
+// ═══════════════════════════════════
 function startGPS() {
-  if (!navigator.geolocation) {
-    setLoading('⚠️','GPS unavailable','Your device does not support location.');
-    setTimeout(hideOverlays,2000); return;
-  }
+  if (!navigator.geolocation) { setLoad('⚠️','No GPS','Device does not support location.'); setTimeout(hideOverlays,2000); return; }
   navigator.geolocation.watchPosition(pos=>{
     const first=userLat===null;
-    userLat=pos.coords.latitude;
-    userLng=pos.coords.longitude;
-    userAlt=pos.coords.altitude||0;
-    document.getElementById('pc-location').classList.add('done');
+    userLat=pos.coords.latitude; userLng=pos.coords.longitude; userAlt=pos.coords.altitude||0;
+    done('pc-loc');
     document.getElementById('tray-alt').textContent=userAlt>0?Math.round(userAlt)+' m':'-- m';
-    if (first) { setLoading('⛰️','Loading peaks...','Found you! Fetching mountains nearby...'); fetchPeaks(); }
-  }, err=>{
-    setLoading('📍','Location needed','Allow location in Settings → Safari → Location');
-  }, {enableHighAccuracy:true,timeout:20000,maximumAge:5000});
+    if (first){ setLoad('⛰️','Loading peaks...','Found you! Fetching mountains nearby...'); fetchPeaks(); }
+  }, ()=>setLoad('📍','Location needed','Allow location in Settings → Safari → Location'),
+  {enableHighAccuracy:true,timeout:20000,maximumAge:5000});
 }
 
-// ═══════════════════════
+// ═══════════════════════════════════
 // FETCH PEAKS
-// ═══════════════════════
+// ═══════════════════════════════════
 async function fetchPeaks() {
   try {
     const url=`https://secure.geonames.org/findNearbyJSON?lat=${userLat}&lng=${userLng}&featureClass=T&featureCode=PKS&featureCode=MT&featureCode=PK&featureCode=MTS&radius=150&maxRows=50&orderby=elevation&username=peakpeek_demo`;
-    const data=await (await fetch(url)).json();
-    if (data.geonames&&data.geonames.length>0) {
-      processPeaks(data.geonames);
-    } else { useFallback(); }
-  } catch(e) { useFallback(); }
-
-  document.getElementById('tray-peaks').textContent=peaks.length;
-  document.getElementById('peaks-pill').textContent=peaks.length+' peaks nearby';
-  setLoading('✅','Ready!','Point your phone at the horizon.');
-  setTimeout(hideOverlays,1000);
-  showStatus('⛰️ '+peaks.length+' peaks found!',true);
-  scannedCount=peaks.length;
-  document.getElementById('me-scanned').textContent=scannedCount;
+    const d=await (await fetch(url)).json();
+    if (d.geonames&&d.geonames.length>0) buildPeaks(d.geonames); else useFallback();
+  } catch(e){ useFallback(); }
+  finishLoad();
 }
 
-function processPeaks(g) {
-  peaks=g.filter(p=>p.elevation>200).map(p=>({
+function buildPeaks(g) {
+  peaks=g.filter(p=>p.elevation>100).map(p=>({
     name:p.name, lat:parseFloat(p.lat), lng:parseFloat(p.lng),
-    elevation:p.elevation||0, country:p.countryCode||'',
-    adminName:p.adminName1||'', fcode:p.fcode||'',
+    elevation:p.elevation||0, country:p.countryCode||'', admin:p.adminName1||'',
     distance:haversine(userLat,userLng,parseFloat(p.lat),parseFloat(p.lng)),
     bearing:calcBearing(userLat,userLng,parseFloat(p.lat),parseFloat(p.lng)),
   })).filter(p=>p.distance>0.1).sort((a,b)=>a.distance-b.distance).slice(0,40);
@@ -503,39 +653,38 @@ function useFallback() {
     {n:'Dent Blanche',dlat:.55,dlng:.3,e:4357,c:'CH'},{n:'Mont Blanc',dlat:.5,dlng:-.5,e:4808,c:'FR'},
     {n:'Eiger',dlat:.45,dlng:.15,e:3967,c:'CH'},{n:'Jungfrau',dlat:.42,dlng:.12,e:4158,c:'CH'},
   ];
-  peaks=d.map(p=>{
-    const lat=userLat+p.dlat, lng=userLng+p.dlng;
-    return {name:p.n,lat,lng,elevation:p.e,country:p.c,adminName:'Alps',
-      distance:haversine(userLat,userLng,lat,lng),bearing:calcBearing(userLat,userLng,lat,lng)};
-  });
+  peaks=d.map(p=>{const lat=userLat+p.dlat,lng=userLng+p.dlng; return {name:p.n,lat,lng,elevation:p.e,country:p.c,admin:'Alps',distance:haversine(userLat,userLng,lat,lng),bearing:calcBearing(userLat,userLng,lat,lng)};});
 }
 
-// ═══════════════════════
-// ORIENTATION — smooth heading
-// ═══════════════════════
-let prevHeading=null;
-function handleOrientation(e) {
+function finishLoad() {
+  document.getElementById('tray-peaks').textContent=peaks.length;
+  document.getElementById('peaks-pill').textContent=peaks.length+' peaks nearby';
+  setLoad('✅','Ready!','Point at the horizon to see peaks.');
+  setTimeout(hideOverlays,1000);
+  showStatus('⛰️ '+peaks.length+' peaks found!',true);
+}
+
+// ═══════════════════════════════════
+// ORIENTATION — smoothed heading
+// ═══════════════════════════════════
+function onOrient(e) {
   let raw;
-  if (e.webkitCompassHeading!==undefined) { raw=e.webkitCompassHeading; }
-  else if (e.alpha!==null) { raw=(360-e.alpha)%360; }
+  if (e.webkitCompassHeading!==undefined) raw=e.webkitCompassHeading;
+  else if (e.alpha!==null) raw=(360-e.alpha)%360;
   else return;
 
-  // Smooth heading with low-pass filter to reduce jitter
-  if (prevHeading===null) { prevHeading=raw; }
-  // Handle wrap-around (e.g. 359 → 1)
-  let diff=raw-prevHeading;
+  // Smooth with lerp, handling 0/360 wrap
+  if (prevH===null) prevH=raw;
+  let diff=raw-prevH;
   if (diff>180) diff-=360;
   if (diff<-180) diff+=360;
-  prevHeading=prevHeading+diff*0.25; // 0.25 = smoothing factor
-  if (prevHeading<0) prevHeading+=360;
-  if (prevHeading>=360) prevHeading-=360;
-  heading=prevHeading;
+  prevH=(prevH+diff*0.3+360)%360;
+  heading=prevH;
 
-  // Tilt — 0 = horizon, positive = looking up
-  const beta=e.beta||0;
-  tiltX=-(beta-90);
+  // Tilt
+  tiltX=-((e.beta||0)-90);
 
-  // UI
+  // Update compass UI
   const cards=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
   const idx=Math.round(heading/22.5)%16;
   document.getElementById('compass-dial').textContent=cards[idx];
@@ -543,134 +692,110 @@ function handleOrientation(e) {
   document.getElementById('tray-heading').textContent=Math.round(heading)+'°';
 }
 
-// ═══════════════════════
+// ═══════════════════════════════════
 // RENDER LOOP
-// ═══════════════════════
-function startRenderLoop() {
-  (function frame(){ if(currentTab==='scan') renderAR(); requestAnimationFrame(frame); })();
-}
+// ═══════════════════════════════════
+function startLoop() { (function f(){ if(currentTab==='scan') renderAR(); requestAnimationFrame(f); })(); }
 
 function renderAR() {
   const c=document.getElementById('ar-container');
   const W=window.innerWidth, H=window.innerHeight;
-  if (!peaks.length||userLat===null) { c.innerHTML=''; return; }
+  if (!peaks.length||userLat===null){ c.innerHTML=''; return; }
 
   const labels=[];
-  peaks.forEach((peak,i)=>{
-    // Horizontal angle
-    let dB=peak.bearing-heading;
+  peaks.forEach((p,i)=>{
+    let dB=p.bearing-heading;
     dB=((dB+540)%360)-180;
     if (Math.abs(dB)>H_FOV/2+10) return;
-
-    // Vertical angle
-    const elevDiff=peak.elevation-Math.max(userAlt,5);
-    const vAngle=Math.atan2(elevDiff,peak.distance*1000)*(180/Math.PI);
-    const dV=vAngle-tiltX;
+    const vA=Math.atan2(p.elevation-Math.max(userAlt,5),p.distance*1000)*(180/Math.PI);
+    const dV=vA-tiltX;
     if (Math.abs(dV)>V_FOV/2+20) return;
-
     const x=W/2+(dB/(H_FOV/2))*(W/2);
     const y=H/2-(dV/(V_FOV/2))*(H/2);
-    if (x<-40||x>W+40) return;
-    labels.push({peak,x,y:Math.max(90,Math.min(y,H-220)),i});
+    if (x<-50||x>W+50) return;
+    labels.push({p,x,y:Math.max(80,Math.min(y,H-180)),i});
   });
 
   c.innerHTML='';
-  if (!labels.length) { document.getElementById('no-peaks').classList.add('show'); return; }
+  if (!labels.length){ document.getElementById('no-peaks').classList.add('show'); return; }
   document.getElementById('no-peaks').classList.remove('show');
 
-  labels.sort((a,b)=>a.peak.distance-b.peak.distance).forEach(({peak,x,y,i})=>{
-    const dist=fmtDist(peak.distance);
+  labels.sort((a,b)=>a.p.distance-b.p.distance).forEach(({p,x,y,i})=>{
     const el=document.createElement('div');
     el.className='ar-label';
     el.style.cssText=`left:${x}px;top:${y-42}px;`;
-    el.innerHTML=`
-      <div class="ar-card" ontouchend="openDetail(${i})" onclick="openDetail(${i})">
-        <div class="ar-name">${peak.name}</div>
-        <div class="ar-info">${peak.elevation.toLocaleString()} m · ${dist}</div>
-      </div>
-      <div class="ar-stem"></div>
-      <div class="ar-dot"></div>`;
+    el.innerHTML=`<div class="ar-card" ontouchend="openDetail(${i})" onclick="openDetail(${i})"><div class="ar-name">${p.name}</div><div class="ar-info">${p.elevation.toLocaleString()} m · ${fd(p.distance)}</div></div><div class="ar-stem"></div><div class="ar-dot"></div>`;
     c.appendChild(el);
   });
 }
 
-// ═══════════════════════
-// EXPLORE LIST
-// ═══════════════════════
+// ═══════════════════════════════════
+// EXPLORE
+// ═══════════════════════════════════
 function renderExplore() {
   const list=document.getElementById('peak-list');
-  const sub=document.getElementById('explore-sub');
-  if (!peaks.length) { list.innerHTML='<div class="empty-state"><div class="empty-icon">📡</div>Loading peaks...</div>'; return; }
-  sub.textContent=peaks.length+' peaks found within 150 km';
+  const ct=document.getElementById('explore-count');
+  if (!peaks.length){ list.innerHTML='<div class="empty-state"><div class="empty-icon">📡</div>Loading peaks...</div>'; return; }
+  ct.textContent=peaks.length+' peaks within 150 km';
   list.innerHTML=peaks.map((p,i)=>`
-    <div class="peak-row" onclick="openDetail(${i}); switchTab('scan');">
+    <div class="peak-row" onclick="openDetail(${i})">
       <div class="pr-rank">${i+1}</div>
       <div class="pr-info">
         <div class="pr-name">${p.name}</div>
-        <div class="pr-where">${[p.country,p.adminName].filter(Boolean).join(' · ')}</div>
+        <div class="pr-where">${[p.country,p.admin].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="pr-right">
         <div class="pr-elev">${p.elevation.toLocaleString()} m</div>
-        <div class="pr-dist">${fmtDist(p.distance)}</div>
+        <div class="pr-dist">${fd(p.distance)}</div>
+        <div class="pr-saved">${savedPeaks.has(p.name)?'♥':''}</div>
       </div>
     </div>`).join('');
 }
 
-// ═══════════════════════
-// ME SCREEN
-// ═══════════════════════
+// ═══════════════════════════════════
+// ME
+// ═══════════════════════════════════
 function renderMe() {
-  document.getElementById('me-saved').textContent=savedPeaks.size;
-  document.getElementById('me-scanned').textContent=scannedCount;
-
-  // Countries
-  const countries=new Set([...savedPeaks].map(name=>{
-    const p=peaks.find(p=>p.name===name);
-    return p?p.country:'';
-  }).filter(Boolean));
-  document.getElementById('me-countries').textContent=countries.size;
-
-  // Level
-  const lvl=Math.floor(savedPeaks.size/3)+1;
-  document.getElementById('me-level-txt').textContent='Level '+lvl;
+  const n=savedPeaks.size;
+  document.getElementById('me-saved-count').textContent=n;
+  document.getElementById('me-scanned').textContent=peaks.length||0;
+  const nearest=peaks.length?peaks[0].name.slice(0,3)+'..':'--';
+  document.getElementById('me-countries').textContent=peaks.length?fd(peaks[0].distance):'--';
+  document.getElementById('me-level-txt').textContent='Level '+(Math.floor(n/3)+1);
 
   // Badges
-  if (scannedCount>0)     document.getElementById('badge-first').parentElement.querySelector('.badge-ring').classList.replace('l','e');
-  if (savedPeaks.size>=5)  document.getElementById('badge-5').classList.replace('l','e');
-  if (savedPeaks.size>=10) document.getElementById('badge-10').classList.replace('l','e');
-  if ([...savedPeaks].some(n=>{ const p=peaks.find(p=>p.name===n); return p&&p.elevation>=4000; }))
-    document.getElementById('badge-4k').classList.replace('l','e');
+  const b5=document.getElementById('b-5'), b4k=document.getElementById('b-4k'), b10=document.getElementById('b-10');
+  if(n>=5){b5.classList.replace('locked','earned');}
+  if(n>=10){b10.classList.replace('locked','earned');}
+  if([...savedPeaks].some(name=>{const p=peaks.find(p=>p.name===name);return p&&p.elevation>=4000;})){b4k.classList.replace('locked','earned');}
 
   // Saved list
   const sl=document.getElementById('saved-list');
-  if (savedPeaks.size===0) {
-    sl.innerHTML='<div class="empty-state"><div class="empty-icon">🏔️</div>Scan a peak and tap Save<br>to build your collection</div>';
+  if (n===0){
+    sl.innerHTML='<div class="empty-state"><div class="empty-icon">🏔️</div>Scan a peak and tap <strong>Save</strong><br>to build your collection</div>';
     return;
   }
   sl.innerHTML=[...savedPeaks].map(name=>{
     const p=peaks.find(p=>p.name===name);
-    return `<div class="saved-row">
-      <div class="sr-info">
-        <div class="sr-name">${name}</div>
-        <div class="sr-sub">${p?[p.country,p.adminName].filter(Boolean).join(' · '):''}</div>
-      </div>
+    return `<div class="saved-row" onclick="openDetail(${peaks.indexOf(p)})">
+      <div class="sr-emoji">⛰️</div>
+      <div class="sr-info"><div class="sr-name">${name}</div><div class="sr-where">${p?[p.country,p.admin].filter(Boolean).join(' · '):''}</div></div>
       <div class="sr-elev">${p?p.elevation.toLocaleString()+' m':''}</div>
     </div>`;
   }).join('');
 }
 
-// ═══════════════════════
+// ═══════════════════════════════════
 // DETAIL PANEL
-// ═══════════════════════
+// ═══════════════════════════════════
 function openDetail(i) {
   const p=peaks[i]; if(!p) return;
-  detailPeakIdx=i;
-  const dist=fmtDist(p.distance);
-  document.getElementById('dp-kicker').textContent=[p.country,p.adminName,dist].filter(Boolean).join(' · ');
+  detailIdx=i;
+  document.getElementById('dp-kicker').textContent=[p.country,p.admin,fd(p.distance)].filter(Boolean).join(' · ');
   document.getElementById('dp-title').textContent=p.name;
   document.getElementById('dp-sub').textContent=p.elevation.toLocaleString()+' m above sea level';
   document.getElementById('dp-elev').textContent=p.elevation.toLocaleString()+' m';
-  document.getElementById('dp-dist').textContent=dist;
+  document.getElementById('dp-dist').textContent=fd(p.distance);
   document.getElementById('dp-bear').textContent=Math.round(p.bearing)+'°';
   updateSaveBtn(p.name);
   document.getElementById('detail-panel').classList.add('open');
@@ -678,67 +803,53 @@ function openDetail(i) {
 
 function updateSaveBtn(name) {
   const btn=document.getElementById('dp-save');
-  if (savedPeaks.has(name)) {
-    btn.textContent='✓ Saved'; btn.classList.add('saved');
-  } else {
-    btn.textContent='Save Peak ♡'; btn.classList.remove('saved');
-  }
+  if (savedPeaks.has(name)){ btn.textContent='✓ Saved'; btn.classList.add('saved'); }
+  else { btn.textContent='Save Peak ♡'; btn.classList.remove('saved'); }
 }
 
-function saveFromDetail() {
-  if (detailPeakIdx===null) return;
-  const p=peaks[detailPeakIdx]; if(!p) return;
-  if (savedPeaks.has(p.name)) {
-    savedPeaks.delete(p.name);
-    updateSaveBtn(p.name);
-    showToast('Removed from saved');
-  } else {
-    savedPeaks.add(p.name);
-    updateSaveBtn(p.name);
-    showToast('⛰️ '+p.name+' saved!');
-  }
+function toggleSave() {
+  if (detailIdx===null) return;
+  const p=peaks[detailIdx]; if(!p) return;
+  if (savedPeaks.has(p.name)){ savedPeaks.delete(p.name); toast('Removed from saved'); }
+  else { savedPeaks.add(p.name); toast('⛰️ '+p.name+' saved!'); }
+  updateSaveBtn(p.name);
+  if (currentTab==='me') renderMe();
+  if (currentTab==='explore') renderExplore();
 }
 
-function closeDetail() { document.getElementById('detail-panel').classList.remove('open'); }
+function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); detailIdx=null; }
 
 // Swipe down to close
 let ty0=0;
-document.getElementById('detail-panel').addEventListener('touchstart',e=>ty0=e.touches[0].clientY,{passive:true});
-document.getElementById('detail-panel').addEventListener('touchmove',e=>{ if(e.touches[0].clientY-ty0>70) closeDetail(); },{passive:true});
+document.getElementById('detail-panel').addEventListener('touchstart',e=>{ty0=e.touches[0].clientY;},{passive:true});
+document.getElementById('detail-panel').addEventListener('touchmove',e=>{if(e.touches[0].clientY-ty0>70)closeDetail();},{passive:true});
 document.getElementById('video').addEventListener('click',closeDetail);
 
-// ═══════════════════════
-// UTILS
-// ═══════════════════════
-function fmtDist(d) { return d<10?d.toFixed(1)+' km':Math.round(d)+' km'; }
-
-let stTimer=null;
-function showStatus(msg,hide=false) {
+// ═══════════════════════════════════
+// STATUS / TOAST
+// ═══════════════════════════════════
+let stT=null;
+function showStatus(msg,hide=false){
   const el=document.getElementById('status');
   el.textContent=msg; el.classList.remove('hide');
-  if(stTimer) clearTimeout(stTimer);
-  if(hide) stTimer=setTimeout(()=>el.classList.add('hide'),3500);
+  if(stT)clearTimeout(stT);
+  if(hide)stT=setTimeout(()=>el.classList.add('hide'),3500);
 }
 
-let toastTimer=null;
-function showToast(msg) {
+let toT=null;
+function toast(msg){
   const el=document.getElementById('toast');
   el.textContent=msg; el.classList.add('show');
-  if(toastTimer) clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+  if(toT)clearTimeout(toT);
+  toT=setTimeout(()=>el.classList.remove('show'),2500);
 }
 
-function haversine(lat1,lon1,lat2,lon2) {
-  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-function calcBearing(lat1,lon1,lat2,lon2) {
-  const dLon=(lon2-lon1)*Math.PI/180;
-  const y=Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
-  const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)-Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
-  return((Math.atan2(y,x)*180/Math.PI)+360)%360;
-}
+// ═══════════════════════════════════
+// MATH
+// ═══════════════════════════════════
+function fd(d){ return d<10?d.toFixed(1)+' km':Math.round(d)+' km'; }
+function haversine(a,b,c,d){const R=6371,dL=(c-a)*Math.PI/180,dO=(d-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function calcBearing(a,b,c,d){const dO=(d-b)*Math.PI/180,y=Math.sin(dO)*Math.cos(c*Math.PI/180),x=Math.cos(a*Math.PI/180)*Math.sin(c*Math.PI/180)-Math.sin(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.cos(dO);return((Math.atan2(y,x)*180/Math.PI)+360)%360;}
 </script>
 </body>
 </html>
